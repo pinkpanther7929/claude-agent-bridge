@@ -61,6 +61,14 @@ def delegate_output_root(cwd: str | None) -> Path:
     return base / ".tmp" / "claude_delegate"
 
 
+def resolve_workspace_path(path: str, cwd: str | None) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+    base = Path(cwd).resolve() if cwd else PLUGIN_ROOT
+    return base / candidate
+
+
 TOOLS: list[dict[str, Any]] = [
     {
         "name": "claude_status",
@@ -186,8 +194,12 @@ def handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
 
     if name == "claude_read_result":
         raw_path = arguments.get("path")
-        root = Path(arguments["output_root"]) if arguments.get("output_root") else delegate_output_root(arguments.get("cwd"))
-        path = Path(raw_path) if raw_path else latest_result(root)
+        root = (
+            resolve_workspace_path(arguments["output_root"], arguments.get("cwd"))
+            if arguments.get("output_root")
+            else delegate_output_root(arguments.get("cwd"))
+        )
+        path = resolve_workspace_path(raw_path, arguments.get("cwd")) if raw_path else latest_result(root)
         if path is None:
             return text_result("No Claude delegation output found.", is_error=True)
         if not path.exists() or not path.is_file():

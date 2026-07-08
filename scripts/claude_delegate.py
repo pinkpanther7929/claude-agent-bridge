@@ -109,6 +109,11 @@ def read_file(path: Path, max_chars: int) -> str:
     return text[:max_chars] + f"\n\n[truncated at {max_chars} chars]"
 
 
+def resolve_context_path(path: str, cwd: Path) -> Path:
+    candidate = Path(path)
+    return candidate if candidate.is_absolute() else cwd / candidate
+
+
 def file_blocks(paths: Iterable[Path], max_chars: int) -> str:
     blocks = []
     for path in paths:
@@ -140,7 +145,7 @@ def build_prompt(args: argparse.Namespace, cwd: Path) -> str:
         sections.append(f"Diff:\n```diff\n{diff_text[:args.max_diff_chars] or '(empty)'}\n```")
 
     if args.file:
-        sections.append("Files:\n" + file_blocks([Path(p) for p in args.file], args.max_file_chars))
+        sections.append("Files:\n" + file_blocks([resolve_context_path(p, cwd) for p in args.file], args.max_file_chars))
 
     return "\n\n".join(sections)
 
@@ -214,7 +219,10 @@ def main(argv: list[str] | None = None) -> int:
 
     cwd = args.cwd.resolve()
     prompt = build_prompt(args, cwd)
-    out_path = args.output or output_path(args.output_root, args.task)
+    output_root = args.output_root if args.output_root.is_absolute() else cwd / args.output_root
+    out_path = args.output or output_path(output_root, args.task)
+    if not out_path.is_absolute():
+        out_path = cwd / out_path
 
     if args.dry_run:
         out_path.parent.mkdir(parents=True, exist_ok=True)

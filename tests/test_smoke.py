@@ -110,6 +110,80 @@ class McpSmokeTests(unittest.TestCase):
             self.assertIn("No file edits, commands, deploys, commits", prompt)
             self.assertIn("Check bounded context.", prompt)
 
+    def test_delegate_resolves_relative_files_from_cwd(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            (work / "sample.txt").write_text("bounded file context", encoding="utf-8")
+            output = work / "prompt.md"
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-X",
+                    "utf8",
+                    "scripts/claude_delegate.py",
+                    "--cwd",
+                    str(work),
+                    "--prompt",
+                    "Review selected file.",
+                    "--file",
+                    "sample.txt",
+                    "--dry-run",
+                    "--json",
+                    "--output",
+                    str(output),
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+                check=True,
+            )
+            prompt = output.read_text(encoding="utf-8")
+            self.assertIn("bounded file context", prompt)
+            self.assertNotIn("[missing]", prompt)
+
+    def test_mcp_read_result_resolves_relative_output_root_from_cwd(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            output_root = work / ".tmp" / "claude_delegate"
+            output_root.mkdir(parents=True)
+            result_file = output_root / "result.md"
+            result_file.write_text("saved result", encoding="utf-8")
+            payload = "\n".join([
+                json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+                json.dumps({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "claude_read_result",
+                        "arguments": {
+                            "cwd": str(work),
+                            "output_root": ".tmp/claude_delegate",
+                            "max_chars": 1000,
+                        },
+                    },
+                }),
+                "",
+            ])
+            proc = subprocess.run(
+                [sys.executable, "-X", "utf8", "mcp/claude_mcp_server.py"],
+                input=payload,
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+                check=True,
+            )
+            lines = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
+            result = lines[1]["result"]
+            self.assertFalse(result["isError"])
+            self.assertIn("saved result", result["content"][0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()
