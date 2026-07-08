@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "claude_delegate": {
+      "command": "python",
+      "args": ["-X", "utf8", "mcp/claude_mcp_server.py"],
+      "cwd": ".",
+      "startup_timeout_sec": 30
+    }
+  }
+}
