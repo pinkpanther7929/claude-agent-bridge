@@ -13,6 +13,7 @@ from typing import Any
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 DELEGATE_SCRIPT = PLUGIN_ROOT / "scripts" / "claude_delegate.py"
+START_CWD = Path.cwd().resolve()
 
 
 def emit(message: dict[str, Any]) -> None:
@@ -24,11 +25,16 @@ def text_result(text: str, *, is_error: bool = False) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": text}], "isError": is_error}
 
 
+def default_workspace() -> Path:
+    configured = os.environ.get("CLAUDE_DELEGATE_WORKSPACE", "").strip()
+    return Path(configured).resolve() if configured else START_CWD
+
+
 def run_delegate(args: list[str], *, cwd: str | None = None, timeout: int = 120) -> tuple[int, str, str]:
     command = [sys.executable, "-X", "utf8", str(DELEGATE_SCRIPT), *args]
     proc = subprocess.run(
         command,
-        cwd=cwd or str(PLUGIN_ROOT),
+        cwd=cwd or str(default_workspace()),
         stdin=subprocess.DEVNULL,
         text=True,
         encoding="utf-8",
@@ -57,7 +63,7 @@ def latest_result(root: Path) -> Path | None:
 
 
 def delegate_output_root(cwd: str | None) -> Path:
-    base = Path(cwd).resolve() if cwd else PLUGIN_ROOT
+    base = Path(cwd).resolve() if cwd else default_workspace()
     return base / ".tmp" / "claude_delegate"
 
 
@@ -65,7 +71,7 @@ def resolve_workspace_path(path: str, cwd: str | None) -> Path:
     candidate = Path(path)
     if candidate.is_absolute():
         return candidate
-    base = Path(cwd).resolve() if cwd else PLUGIN_ROOT
+    base = Path(cwd).resolve() if cwd else default_workspace()
     return base / candidate
 
 

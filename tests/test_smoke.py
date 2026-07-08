@@ -184,6 +184,44 @@ class McpSmokeTests(unittest.TestCase):
             self.assertFalse(result["isError"])
             self.assertIn("saved result", result["content"][0]["text"])
 
+    def test_mcp_defaults_workspace_to_server_start_cwd(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            output_root = work / ".tmp" / "claude_delegate"
+            output_root.mkdir(parents=True)
+            (output_root / "result.md").write_text("default workspace result", encoding="utf-8")
+            payload = "\n".join([
+                json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+                json.dumps({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "claude_read_result",
+                        "arguments": {
+                            "output_root": ".tmp/claude_delegate",
+                            "max_chars": 1000,
+                        },
+                    },
+                }),
+                "",
+            ])
+            proc = subprocess.run(
+                [sys.executable, "-X", "utf8", str(ROOT / "mcp" / "claude_mcp_server.py")],
+                input=payload,
+                cwd=work,
+                text=True,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+                check=True,
+            )
+            lines = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
+            result = lines[1]["result"]
+            self.assertFalse(result["isError"])
+            self.assertIn("default workspace result", result["content"][0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()
