@@ -69,6 +69,19 @@ Dry-run and JSON output are available for automation:
 python D:\claude-agent-bridge\scripts\install_mcp_config.py D:\your-repo --dry-run --json
 ```
 
+### Codex CLI Plugin Install
+
+For Codex CLI, add this repository as a marketplace first, then install the plugin
+from that marketplace:
+
+```powershell
+codex plugin marketplace add https://github.com/pinkpanther7929/claude-agent-bridge
+codex plugin add claude-agent-bridge@claude-agent-bridge
+```
+
+`codex plugin add claude-agent-bridge@https://github.com/...` does not work
+because `plugin add` expects `plugin@marketplace-name`, not a Git URL.
+
 ## Local Checks
 
 ```powershell
