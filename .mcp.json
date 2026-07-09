@@ -2,8 +2,8 @@
   "mcpServers": {
     "claude_delegate": {
       "command": "python",
-      "args": ["-X", "utf8", "mcp/claude_mcp_server.py"],
-      "cwd": ".",
+      "args": ["-X", "utf8", "${CLAUDE_PLUGIN_ROOT}/mcp/claude_mcp_server.py"],
+      "cwd": "${workspaceFolder}",
       "startup_timeout_sec": 30
     }
   }

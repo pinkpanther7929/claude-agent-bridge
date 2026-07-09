@@ -20,6 +20,28 @@ MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegat
 
 ## Install Into Any Repo
 
+### VS Code UI
+
+For the lowest-friction setup, install this repository as an Agent Plugin from
+source in VS Code:
+
+1. Open the Command Palette.
+2. Run `Chat: Install Plugin From Source`.
+3. Enter `https://github.com/pinkpanther7929/claude-agent-bridge`.
+4. Open a new chat/workspace session after the plugin installs.
+
+The plugin contributes the `claude_delegate` MCP server and starts it with the
+current workspace as the default working directory.
+
+For one-off local setup without installing a plugin, use the Command Palette
+flow `MCP: Add Server`, choose a stdio server, and point it at:
+
+```text
+python -X utf8 <path-to-this-repo>/mcp/claude_mcp_server.py
+```
+
+### Scripted Setup
+
 Clone this bridge once, then install it into any repo/workspace with one command:
 
 ```powershell
