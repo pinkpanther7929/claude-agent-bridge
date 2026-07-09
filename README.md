@@ -20,6 +20,29 @@ MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegat
 
 ## Install Into Any Repo
 
+### Codex Auto-Start
+
+Use this when you want the bridge to behave like a standing agent tool that is
+available in every Codex session after restart:
+
+```powershell
+git clone https://github.com/pinkpanther7929/claude-agent-bridge D:\claude-agent-bridge
+cd D:\claude-agent-bridge
+.\scripts\install-codex.ps1
+```
+
+The installer adds this MCP server block to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.claude_agent_bridge]
+command = 'python'
+args = ['-X', 'utf8', 'mcp\claude_mcp_server.py']
+cwd = 'D:\claude-agent-bridge'
+startup_timeout_sec = 30
+```
+
+Restart Codex after registration. Codex will start the MCP server automatically.
+
 ### Codex CLI Plugin Install
 
 For Codex CLI, add this repository as a marketplace first, then install the plugin
@@ -35,6 +58,10 @@ because `plugin add` expects `plugin@marketplace-name`, not a Git URL.
 
 The repository root is a marketplace. The plugin package lives under
 `plugins/claude-agent-bridge`.
+
+Plugin install is useful for distribution. `install-codex.ps1` is the more
+Obsidian-like path when you want the MCP server registered globally and started
+automatically.
 
 ### VS Code UI
 
@@ -91,6 +118,7 @@ python D:\claude-agent-bridge\scripts\install_mcp_config.py D:\your-repo --dry-r
 python -m py_compile scripts\claude_delegate.py scripts\install_mcp_config.py mcp\claude_mcp_server.py
 python -X utf8 -m json.tool .agents\plugins\marketplace.json
 python -X utf8 -m json.tool plugins\claude-agent-bridge\.mcp.json
+powershell.exe -NoProfile -File scripts\install-codex.ps1 -ConfigPath .tmp\codex-test.toml
 python -m unittest discover -s tests
 python scripts\claude_delegate.py status --json
 ```

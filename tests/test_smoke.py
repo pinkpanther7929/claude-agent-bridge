@@ -47,6 +47,34 @@ class McpSmokeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 install(target, server_name="claude_delegate", force=False, dry_run=False)
 
+    def test_install_codex_registers_global_mcp_server(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "codex.toml"
+            proc = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-File",
+                    str(ROOT / "scripts" / "install-codex.ps1"),
+                    "-RepoPath",
+                    str(ROOT),
+                    "-ConfigPath",
+                    str(config),
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+                check=True,
+            )
+            text = config.read_text(encoding="utf-8-sig")
+            self.assertIn("[mcp_servers.claude_agent_bridge]", text)
+            self.assertIn("mcp\\claude_mcp_server.py", text)
+            self.assertIn(str(ROOT).replace("'", "''"), text)
+            self.assertIn("Registered Codex MCP server", proc.stdout)
+
     def test_mcp_lists_claude_tools(self):
         payload = "\n".join([
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
