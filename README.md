@@ -20,19 +20,34 @@ MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegat
 
 ## Install Into Any Repo
 
+### Codex CLI Plugin Install
+
+For Codex CLI, add this repository as a marketplace first, then install the plugin
+from that marketplace:
+
+```powershell
+codex plugin marketplace add https://github.com/pinkpanther7929/claude-agent-bridge
+codex plugin add claude-agent-bridge@claude-agent-bridge
+```
+
+`codex plugin add claude-agent-bridge@https://github.com/...` does not work
+because `plugin add` expects `plugin@marketplace-name`, not a Git URL.
+
+The repository root is a marketplace. The plugin package lives under
+`plugins/claude-agent-bridge`.
+
 ### VS Code UI
 
-For the lowest-friction setup, install this repository as an Agent Plugin from
-source in VS Code:
+For VS Code Agent Plugin source install, point the UI at the plugin package
+folder:
 
 1. Open the Command Palette.
 2. Run `Chat: Install Plugin From Source`.
-3. Enter `https://github.com/pinkpanther7929/claude-agent-bridge`.
+3. Enter or select `plugins/claude-agent-bridge` from a local clone.
 4. Open a new chat/workspace session after the plugin installs.
 
 The plugin contributes the `claude_delegate` MCP server and starts it with the
-current workspace as the default working directory. VS Code discovers the plugin
-from the root `plugin.json`.
+current workspace as the default working directory.
 
 For one-off local setup without installing a plugin, use the Command Palette
 flow `MCP: Add Server`, choose a stdio server, and point it at:
@@ -70,24 +85,12 @@ Dry-run and JSON output are available for automation:
 python D:\claude-agent-bridge\scripts\install_mcp_config.py D:\your-repo --dry-run --json
 ```
 
-### Codex CLI Plugin Install
-
-For Codex CLI, add this repository as a marketplace first, then install the plugin
-from that marketplace:
-
-```powershell
-codex plugin marketplace add https://github.com/pinkpanther7929/claude-agent-bridge
-codex plugin add claude-agent-bridge@claude-agent-bridge
-```
-
-`codex plugin add claude-agent-bridge@https://github.com/...` does not work
-because `plugin add` expects `plugin@marketplace-name`, not a Git URL.
-
 ## Local Checks
 
 ```powershell
 python -m py_compile scripts\claude_delegate.py scripts\install_mcp_config.py mcp\claude_mcp_server.py
-python -X utf8 -m json.tool .mcp.json
+python -X utf8 -m json.tool .agents\plugins\marketplace.json
+python -X utf8 -m json.tool plugins\claude-agent-bridge\.mcp.json
 python -m unittest discover -s tests
 python scripts\claude_delegate.py status --json
 ```
