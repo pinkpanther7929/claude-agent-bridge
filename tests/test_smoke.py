@@ -10,9 +10,43 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.claude_delegate import redact  # noqa: E402
+from scripts.install_mcp_config import install  # noqa: E402
 
 
 class McpSmokeTests(unittest.TestCase):
+    def test_install_mcp_config_creates_repo_local_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            result = install(target, server_name="claude_delegate", force=False, dry_run=False)
+            config = json.loads((target / ".mcp.json").read_text(encoding="utf-8"))
+            server = config["mcpServers"]["claude_delegate"]
+            self.assertEqual(result["status"], "changed")
+            self.assertEqual(server["command"], "python")
+            self.assertEqual(server["cwd"], str(target.resolve()))
+            self.assertTrue(server["args"][-1].endswith("mcp\\claude_mcp_server.py") or server["args"][-1].endswith("mcp/claude_mcp_server.py"))
+
+    def test_install_mcp_config_preserves_existing_servers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / ".mcp.json").write_text(
+                json.dumps({"mcpServers": {"other": {"command": "other"}}}),
+                encoding="utf-8",
+            )
+            install(target, server_name="claude_delegate", force=False, dry_run=False)
+            config = json.loads((target / ".mcp.json").read_text(encoding="utf-8"))
+            self.assertEqual(config["mcpServers"]["other"], {"command": "other"})
+            self.assertIn("claude_delegate", config["mcpServers"])
+
+    def test_install_mcp_config_rejects_conflicting_server_without_force(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            (target / ".mcp.json").write_text(
+                json.dumps({"mcpServers": {"claude_delegate": {"command": "old"}}}),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                install(target, server_name="claude_delegate", force=False, dry_run=False)
+
     def test_mcp_lists_claude_tools(self):
         payload = "\n".join([
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),

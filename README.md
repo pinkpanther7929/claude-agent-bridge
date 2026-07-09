@@ -18,10 +18,39 @@ MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegat
 - `claude_review_diff`: ask Claude to review current git diff or selected paths.
 - `claude_read_result`: read saved Claude output.
 
+## Install Into Any Repo
+
+Clone this bridge once, then install it into any repo/workspace with one command:
+
+```powershell
+git clone https://github.com/pinkpanther7929/claude-agent-bridge D:\claude-agent-bridge
+python D:\claude-agent-bridge\scripts\install_mcp_config.py D:\your-repo
+```
+
+```bash
+git clone https://github.com/pinkpanther7929/claude-agent-bridge ~/claude-agent-bridge
+python ~/claude-agent-bridge/scripts/install_mcp_config.py ~/your-repo
+```
+
+The installer creates or updates `<your-repo>/.mcp.json` and preserves existing
+MCP servers. If `claude_delegate` already exists with different settings, pass
+`--force` to replace only that server entry. The file is written as UTF-8 without
+a BOM so JSON parsers can read it reliably.
+
+Open a new Codex session from `D:\your-repo` after installing. The Claude tools
+will use that repo as their default workspace, including diff review and saved
+outputs under `.tmp/claude_delegate`.
+
+Dry-run and JSON output are available for automation:
+
+```powershell
+python D:\claude-agent-bridge\scripts\install_mcp_config.py D:\your-repo --dry-run --json
+```
+
 ## Local Checks
 
 ```powershell
-python -m py_compile scripts\claude_delegate.py mcp\claude_mcp_server.py
+python -m py_compile scripts\claude_delegate.py scripts\install_mcp_config.py mcp\claude_mcp_server.py
 python -X utf8 -m json.tool .mcp.json
 python -m unittest discover -s tests
 python scripts\claude_delegate.py status --json
