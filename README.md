@@ -40,6 +40,22 @@ After install, open a new Codex session. The plugin manifest contributes the
 Claude MCP server automatically; no separate setup script is required for normal
 plugin use.
 
+Update later with:
+
+```powershell
+codex plugin marketplace upgrade
+codex plugin add claude-agent-bridge@claude-agent-bridge
+```
+
+Or from a local clone:
+
+```powershell
+.\scripts\update-codex.ps1
+```
+
+Start a new Codex session after updating so changed MCP tools and skills are
+loaded.
+
 ### Codex Config Fallback
 
 Use this only when you want to register the MCP server directly in

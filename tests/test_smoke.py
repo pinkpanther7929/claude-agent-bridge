@@ -75,6 +75,11 @@ class McpSmokeTests(unittest.TestCase):
             self.assertIn(str(ROOT).replace("'", "''"), text)
             self.assertIn("Registered Codex MCP server", proc.stdout)
 
+    def test_update_codex_script_uses_marketplace_refresh_flow(self):
+        script = (ROOT / "scripts" / "update-codex.ps1").read_text(encoding="utf-8")
+        self.assertIn("codex plugin marketplace upgrade", script)
+        self.assertIn("codex plugin add claude-agent-bridge@claude-agent-bridge", script)
+
     def test_mcp_lists_claude_tools(self):
         payload = "\n".join([
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
