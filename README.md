@@ -31,7 +31,8 @@ source in VS Code:
 4. Open a new chat/workspace session after the plugin installs.
 
 The plugin contributes the `claude_delegate` MCP server and starts it with the
-current workspace as the default working directory.
+current workspace as the default working directory. VS Code discovers the plugin
+from the root `plugin.json`.
 
 For one-off local setup without installing a plugin, use the Command Palette
 flow `MCP: Add Server`, choose a stdio server, and point it at:

@@ -1,7 +1,7 @@
 {
   "name": "claude-agent-bridge",
-  "description": "Delegate bounded review and analysis to the local Claude CLI.",
   "version": "0.1.0",
+  "description": "MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegate.",
   "author": {
     "name": "hsublee"
   },
