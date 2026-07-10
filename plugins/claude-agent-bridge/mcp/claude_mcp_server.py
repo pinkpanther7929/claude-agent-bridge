@@ -105,6 +105,8 @@ TOOLS: list[dict[str, Any]] = [
                 },
                 "files": {"type": "array", "items": {"type": "string"}, "default": []},
                 "cwd": {"type": "string"},
+                "agent": {"type": "string", "default": "claude-reviewer"},
+                "no_agent": {"type": "boolean", "default": False},
                 "timeout_seconds": {"type": "integer", "minimum": 10, "maximum": 600, "default": 120},
                 "max_file_chars": {"type": "integer", "minimum": 1000, "maximum": 100000, "default": 12000},
             },
@@ -121,6 +123,8 @@ TOOLS: list[dict[str, Any]] = [
                 "prompt": {"type": "string"},
                 "cwd": {"type": "string"},
                 "diff_paths": {"type": "array", "items": {"type": "string"}, "default": []},
+                "agent": {"type": "string", "default": "claude-reviewer"},
+                "no_agent": {"type": "boolean", "default": False},
                 "timeout_seconds": {"type": "integer", "minimum": 10, "maximum": 600, "default": 120},
                 "max_diff_chars": {"type": "integer", "minimum": 1000, "maximum": 200000, "default": 24000},
             },
@@ -172,6 +176,10 @@ def handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             "--max-file-chars",
             str(arguments.get("max_file_chars", 12000)),
         ]
+        if arguments.get("agent"):
+            args.extend(["--agent", arguments["agent"]])
+        if arguments.get("no_agent"):
+            args.append("--no-agent")
         for file_path in arguments.get("files") or []:
             args.extend(["--file", file_path])
         code, out, err = run_delegate(args, cwd=arguments.get("cwd"), timeout=timeout_seconds + 20)
@@ -193,6 +201,10 @@ def handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             "--max-diff-chars",
             str(arguments.get("max_diff_chars", 24000)),
         ]
+        if arguments.get("agent"):
+            args.extend(["--agent", arguments["agent"]])
+        if arguments.get("no_agent"):
+            args.append("--no-agent")
         for diff_path in arguments.get("diff_paths") or []:
             args.extend(["--diff-path", diff_path])
         code, out, err = run_delegate(args, cwd=arguments.get("cwd"), timeout=timeout_seconds + 20)

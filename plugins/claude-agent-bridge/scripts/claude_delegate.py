@@ -8,14 +8,18 @@ import datetime as dt
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
 
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_ROOT = Path(".tmp") / "claude_delegate"
 DEFAULT_STATE = Path(os.environ.get("CODEX_HOME", r"C:\Users\hsublee\.codex")) / "tmp" / "claude_delegate_state.json"
+DEFAULT_AGENT = "claude-reviewer"
+DEFAULT_AGENT_FILE = PLUGIN_ROOT / "agents" / "claude-reviewer.md"
 SENSITIVE_MARKERS = (
     "password",
     "passwd",
@@ -54,6 +58,42 @@ def is_enabled(path: Path = DEFAULT_STATE) -> bool:
     return bool(load_state(path).get("enabled", True))
 
 
+def probe_claude_cli(claude: str = "claude") -> dict[str, object]:
+    command = os.environ.get("CLAUDE_DELEGATE_CLI", claude)
+    resolved = shutil.which(command)
+    result: dict[str, object] = {
+        "command": command,
+        "resolved": resolved,
+        "found": bool(resolved),
+    }
+    if not resolved:
+        result["error"] = "not_found"
+        return result
+
+    try:
+        proc = subprocess.run(
+            [command, "--version"],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+    except Exception as exc:
+        result.update({"reachable": False, "error": str(exc)})
+        return result
+
+    result.update(
+        {
+            "reachable": proc.returncode == 0,
+            "returncode": proc.returncode,
+            "version": (proc.stdout or proc.stderr).strip(),
+        }
+    )
+    return result
+
+
 def control(command: str, *, as_json: bool = False, path: Path = DEFAULT_STATE) -> int:
     state = load_state(path)
     if command == "on":
@@ -69,6 +109,7 @@ def control(command: str, *, as_json: bool = False, path: Path = DEFAULT_STATE) 
         "status": "enabled" if is_enabled(path) else "disabled",
         "state_path": str(path),
         "env_disabled": bool(os.environ.get("CLAUDE_DELEGATE_DISABLED")),
+        "claude": probe_claude_cli(),
     }
     print(json.dumps(result, ensure_ascii=False) if as_json else result["status"])
     return 0
@@ -157,7 +198,17 @@ def output_path(root: Path, task: str) -> Path:
     return root / f"{stamp}-{safe_task}.md"
 
 
-def run_claude(args: argparse.Namespace, prompt: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+def agent_prompt(path: Path) -> str:
+    if path.exists() and path.is_file():
+        return path.read_text(encoding="utf-8", errors="replace")
+    return (
+        "You are a bounded read-only reviewer for Codex. "
+        "Do not edit files, run commands, commit, deploy, or request credentials. "
+        "Return concise findings, risks, and verification steps."
+    )
+
+
+def build_claude_command(args: argparse.Namespace) -> list[str]:
     claude = os.environ.get("CLAUDE_DELEGATE_CLI", args.claude)
     cmd = [
         claude,
@@ -170,12 +221,24 @@ def run_claude(args: argparse.Namespace, prompt: str, cwd: Path) -> subprocess.C
         "",
         "--no-session-persistence",
     ]
+    if args.agent and not args.no_agent:
+        agents = {
+            args.agent: {
+                "description": "Bounded read-only Claude reviewer for Codex.",
+                "prompt": agent_prompt(args.agent_file),
+            }
+        }
+        cmd.extend(["--agents", json.dumps(agents, ensure_ascii=False), "--agent", args.agent])
     if args.model:
         cmd.extend(["--model", args.model])
     if args.max_budget_usd:
         cmd.extend(["--max-budget-usd", str(args.max_budget_usd)])
+    return cmd
+
+
+def run_claude(args: argparse.Namespace, prompt: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        cmd,
+        build_claude_command(args),
         cwd=str(cwd),
         input=prompt,
         text=True,
@@ -203,6 +266,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--claude", default="claude")
+    parser.add_argument("--agent", default=DEFAULT_AGENT, help="Claude Code agent name to run.")
+    parser.add_argument("--agent-file", type=Path, default=DEFAULT_AGENT_FILE, help="Markdown prompt for the Claude Code agent.")
+    parser.add_argument("--no-agent", action="store_true", help="Run Claude without injecting a custom agent.")
     parser.add_argument("--model")
     parser.add_argument("--timeout-seconds", type=int, default=60)
     parser.add_argument("--max-file-chars", type=int, default=12000)

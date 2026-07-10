@@ -3,13 +3,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.claude_delegate import redact  # noqa: E402
+from scripts.claude_delegate import build_claude_command, redact  # noqa: E402
 from scripts.install_mcp_config import install  # noqa: E402
 
 
@@ -146,6 +147,37 @@ class McpSmokeTests(unittest.TestCase):
         self.assertNotIn("abc123", redacted)
         self.assertIn("if token is None:", redacted)
         self.assertIn("return token", redacted)
+
+    def test_delegate_command_injects_default_agent(self):
+        args = Namespace(
+            claude="claude",
+            agent="claude-reviewer",
+            agent_file=ROOT / "agents" / "claude-reviewer.md",
+            no_agent=False,
+            model=None,
+            max_budget_usd=None,
+        )
+        cmd = build_claude_command(args)
+        self.assertIn("-p", cmd)
+        self.assertIn("--agents", cmd)
+        self.assertIn("--agent", cmd)
+        self.assertEqual(cmd[cmd.index("--agent") + 1], "claude-reviewer")
+        agents = json.loads(cmd[cmd.index("--agents") + 1])
+        self.assertIn("claude-reviewer", agents)
+        self.assertIn("bounded read-only", agents["claude-reviewer"]["prompt"])
+
+    def test_delegate_command_can_disable_agent(self):
+        args = Namespace(
+            claude="claude",
+            agent="claude-reviewer",
+            agent_file=ROOT / "agents" / "claude-reviewer.md",
+            no_agent=True,
+            model=None,
+            max_budget_usd=None,
+        )
+        cmd = build_claude_command(args)
+        self.assertNotIn("--agents", cmd)
+        self.assertNotIn("--agent", cmd)
 
     def test_delegate_dry_run_writes_prompt_without_claude(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -19,6 +19,10 @@ claude
 
 Override with `CLAUDE_DELEGATE_CLI`.
 
+Delegation uses `claude -p` for non-interactive stdout capture, plus
+`--agents`/`--agent claude-reviewer` by default. `-p` is transport mode, not a
+signal that the custom agent was skipped.
+
 ## Commands
 
 Slash-style controls:

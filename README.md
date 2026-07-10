@@ -18,6 +18,12 @@ MCP bridge for using local Claude CLI as a bounded reviewer and analysis delegat
 - `claude_review_diff`: ask Claude to review current git diff or selected paths.
 - `claude_read_result`: read saved Claude output.
 
+`claude_status` also reports whether the local `claude` executable can be found
+and queried for its version. Delegation runs Claude Code in non-interactive
+print mode (`claude -p`) so Codex can capture stdout, but it now injects the
+`claude-reviewer` custom agent with `--agents` and selects it with `--agent`.
+Use `--no-agent` only for troubleshooting.
+
 ## Install Into Any Repo
 
 ### Codex CLI Plugin Install
@@ -127,6 +133,7 @@ python -X utf8 -m json.tool plugins\claude-agent-bridge\.mcp.json
 powershell.exe -NoProfile -File scripts\install-codex.ps1 -ConfigPath .tmp\codex-test.toml
 python -m unittest discover -s tests
 python scripts\claude_delegate.py status --json
+python scripts\claude_delegate.py --prompt "Build prompt only." --dry-run --json
 ```
 
 Plugin manifest validation uses the Codex plugin creator validator, which requires
